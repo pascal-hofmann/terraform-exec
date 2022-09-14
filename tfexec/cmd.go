@@ -199,9 +199,16 @@ func (tf *Terraform) runTerraformCmdJSON(ctx context.Context, cmd *exec.Cmd, v i
 		return err
 	}
 
-	dec := json.NewDecoder(&outbuf)
+	var buf bytes.Buffer
+	r := io.TeeReader(io.Reader(&outbuf), &buf)
+
+	dec := json.NewDecoder(r)
 	dec.UseNumber()
-	return dec.Decode(v)
+	err = dec.Decode(v)
+	if err != nil {
+		return fmt.Errorf("could not decode JSON: >%v< >%v<", err, buf.String())
+	}
+	return nil
 }
 
 // mergeUserAgent does some minor deduplication to ensure we aren't
